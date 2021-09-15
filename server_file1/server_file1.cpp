@@ -4,12 +4,13 @@
 #pragma comment(lib,"wsock32.lib")
 #include <stdio.h>
 #include <sys/stat.h>
+#include <chrono>
 
 int main(int argc, char* argv[])
 {
     int server_port = 5555;
     const char* file_name = "test_server.mp4";
-    int part_size = 1024;
+    int part_size = 65535;
 
     WSADATA wsa_data;
     if (WSAStartup(0x101, &wsa_data))
@@ -95,9 +96,18 @@ int main(int argc, char* argv[])
         printf("stat error\n");
         system("pause");
         return -1;
-    }
+    }   
 
     if (send(ns, (char*)&si.st_size, sizeof(si.st_size), 0) == SOCKET_ERROR)
+    {
+        printf("send error\n");
+        system("pause");
+        return -1;
+    }
+
+    auto now = std::chrono::high_resolution_clock::now();
+    int time_point_size = sizeof(now);
+    if (send(ns, (char*)&now, time_point_size, 0) == SOCKET_ERROR)
     {
         printf("send error\n");
         system("pause");

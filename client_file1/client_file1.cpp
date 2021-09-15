@@ -3,13 +3,14 @@
 #include <winsock2.h>
 #pragma comment(lib,"wsock32.lib")
 #include <stdio.h>
+#include <chrono>
 
 int main(int argc, char* argv[])
 {
     const char* server_ip = "127.0.0.1";
     int server_port = 5555;
     const char* file_name = "test_client.mp4";
-    int part_size = 1024;
+    int part_size = 65535;
 
     WSADATA wsa_data;
     if (WSAStartup(0x101, &wsa_data))
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
 
     printf("connected\n");
 
-    printf("transfer...");
+    printf("transfer...\n");
 
     FILE* f = fopen(file_name, "wb");
     if (!f)
@@ -67,6 +68,20 @@ int main(int argc, char* argv[])
         system("pause");
         return -1;
     }
+
+    std::chrono::steady_clock::time_point now;
+    int time_point_size = sizeof(now);
+
+    if (recv(s, (char*)&now, time_point_size, 0) != time_point_size)
+    {
+        printf("send error\n");
+        system("pause");
+        return -1;
+    }
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - now);
+    long long ns_count = elapsed.count();
+    printf("time delay: %I64d, ns\n", ns_count);
 
     char* buffer = new char[part_size];
 

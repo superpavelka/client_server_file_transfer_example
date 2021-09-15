@@ -3,6 +3,7 @@
 #include <WinSock2.h>
 #pragma comment(lib,"wsock32.lib")
 #include <stdio.h>
+#include <sys/stat.h>
 
 int main(int argc, char* argv[])
 {
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
         printf("select error\n");
         system("pause");
         return -1;
-    }
+    }  
 
     SOCKET ns;
 
@@ -88,7 +89,25 @@ int main(int argc, char* argv[])
 
     printf("transfer...");
 
-    FILE* f = fopen(file_name, "wb");
+    struct stat si;
+    if (stat(file_name, &si))
+    {
+        printf("stat error\n");
+        system("pause");
+        return -1;
+    }
+
+    if (send(ns, (char*)&si.st_size, sizeof(si.st_size), 0) == SOCKET_ERROR)
+    {
+        printf("send error\n");
+        system("pause");
+        return -1;
+    }
+
+    int parts_count = si.st_size / part_size;
+    int last_part_size = si.st_size % part_size;
+
+    FILE* f = fopen(file_name, "rb");
     if (!f)
     {
         printf("fopen error\n");
@@ -96,42 +115,35 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    long file_size = 0;
-
-    if (recv(ns, (char*)&file_size, sizeof(file_size), 0) != sizeof(file_size))
-    {
-        printf("recv error\n");
-        system("pause");
-        return -1;
-    }
-
     char* buffer = new char[part_size];
 
-    while (file_size)
+    for (int i = 0; i < parts_count; i++)
     {
-        int n = recv(ns, buffer, part_size, 0);
-        if (!n)
+        if (fread(buffer, 1, part_size, f) != part_size)
         {
-            printf("disconnected\n");
+            printf("fread error\n");
             system("pause");
             return -1;
         }
-        if (n == SOCKET_ERROR)
+        if (send(ns, buffer, part_size, 0) == SOCKET_ERROR)
         {
-            printf("recv error\n");
+            printf("send error\n");
             system("pause");
             return -1;
         }
-        file_size -= n;
-        if (file_size < 0)
+    }
+
+    if (last_part_size)
+    {
+        if (fread(buffer, 1, last_part_size, f) != last_part_size)
         {
-            printf("file_size error\n");
+            printf("fread error\n");
             system("pause");
             return -1;
         }
-        if (fwrite(buffer, 1, n, f) != n)
+        if (send(ns, buffer, last_part_size, 0) == SOCKET_ERROR)
         {
-            printf("fwrite error\n");
+            printf("send error\n");
             system("pause");
             return -1;
         }
@@ -140,8 +152,6 @@ int main(int argc, char* argv[])
     delete[] buffer;
 
     fclose(f);
-
-    closesocket(ns);
 
     closesocket(s);
 

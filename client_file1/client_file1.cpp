@@ -2,7 +2,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <winsock2.h>
 #pragma comment(lib,"wsock32.lib")
-#include <sys/stat.h>
 #include <stdio.h>
 
 int main(int argc, char* argv[])
@@ -47,29 +46,12 @@ int main(int argc, char* argv[])
 
         Sleep(250);
     }
+
     printf("connected\n");
 
     printf("transfer...");
 
-    struct stat si;
-    if (stat(file_name, &si))
-    {
-        printf("stat error\n");
-        system("pause");
-        return -1;
-    }
-
-    if (send(s, (char*)&si.st_size, sizeof(si.st_size), 0) == SOCKET_ERROR)
-    {
-        printf("send error\n");
-        system("pause");
-        return -1;
-    }
-
-    int parts_count = si.st_size / part_size;
-    int last_part_size = si.st_size % part_size;
-
-    FILE* f = fopen(file_name, "rb");
+    FILE* f = fopen(file_name, "wb");
     if (!f)
     {
         printf("fopen error\n");
@@ -77,39 +59,46 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    long file_size = 0;
+
+    if (recv(s, (char*)&file_size, sizeof(file_size), 0) != sizeof(file_size))
+    {
+        printf("recv error\n");
+        system("pause");
+        return -1;
+    }
+
     char* buffer = new char[part_size];
 
-    for (int i = 0; i < parts_count; i++)
+    while (file_size)
     {
-        if (fread(buffer, 1, part_size, f) != part_size)
+        int n = recv(s, buffer, part_size, 0);
+        if (!n)
         {
-            printf("fread error\n");
+            printf("disconnected\n");
             system("pause");
             return -1;
         }
-        if (send(s, buffer, part_size, 0) == SOCKET_ERROR)
+        if (n == SOCKET_ERROR)
         {
-            printf("send error\n");
+            printf("recv error\n");
             system("pause");
             return -1;
         }
-    }
-
-    if (last_part_size)
-    {
-        if (fread(buffer, 1, last_part_size, f) != last_part_size)
+        file_size -= n;
+        if (file_size < 0)
         {
-            printf("fread error\n");
+            printf("file_size error\n");
             system("pause");
             return -1;
         }
-        if (send(s, buffer, last_part_size, 0) == SOCKET_ERROR)
+        if (fwrite(buffer, 1, n, f) != n)
         {
-            printf("send error\n");
+            printf("fwrite error\n");
             system("pause");
             return -1;
         }
-    }
+    }    
 
     delete[] buffer;
 

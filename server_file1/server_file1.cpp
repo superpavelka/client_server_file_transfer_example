@@ -16,12 +16,14 @@ int main(int argc, char* argv[])
     if (WSAStartup(0x101, &wsa_data))
     {
         printf("WSAStartup error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
     if (wsa_data.wVersion != 0x101)
     {
         printf("WSA version error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -30,6 +32,7 @@ int main(int argc, char* argv[])
     if (s == INVALID_SOCKET)
     {
         printf("socket error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -42,12 +45,16 @@ int main(int argc, char* argv[])
     if (bind(s, (SOCKADDR*)&sa, sizeof(sa)) == SOCKET_ERROR)
     {
         printf("bind error\n");
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
     if (listen(s, SOMAXCONN) == SOCKET_ERROR)
     {
         printf("listen error\n");
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -69,6 +76,8 @@ int main(int argc, char* argv[])
     if (select_res == SOCKET_ERROR)
     {
         printf("select error\n");
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }  
@@ -82,6 +91,8 @@ int main(int argc, char* argv[])
     if (ns == INVALID_SOCKET)
     {
         printf("accept error\n");
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -94,6 +105,9 @@ int main(int argc, char* argv[])
     if (stat(file_name, &si))
     {
         printf("stat error\n");
+        closesocket(ns);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }   
@@ -101,6 +115,9 @@ int main(int argc, char* argv[])
     if (send(ns, (char*)&si.st_size, sizeof(si.st_size), 0) == SOCKET_ERROR)
     {
         printf("send error\n");
+        closesocket(ns);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -110,6 +127,9 @@ int main(int argc, char* argv[])
     if (send(ns, (char*)&now, time_point_size, 0) == SOCKET_ERROR)
     {
         printf("send error\n");
+        closesocket(ns);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -121,6 +141,9 @@ int main(int argc, char* argv[])
     if (!f)
     {
         printf("fopen error\n");
+        closesocket(ns);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -132,12 +155,20 @@ int main(int argc, char* argv[])
         if (fread(buffer, 1, part_size, f) != part_size)
         {
             printf("fread error\n");
+            fclose(f);
+            closesocket(ns);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
         if (send(ns, buffer, part_size, 0) == SOCKET_ERROR)
         {
             printf("send error\n");
+            fclose(f);
+            closesocket(ns);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
@@ -148,12 +179,20 @@ int main(int argc, char* argv[])
         if (fread(buffer, 1, last_part_size, f) != last_part_size)
         {
             printf("fread error\n");
+            fclose(f);
+            closesocket(ns);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
         if (send(ns, buffer, last_part_size, 0) == SOCKET_ERROR)
         {
             printf("send error\n");
+            fclose(f);
+            closesocket(ns);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }

@@ -16,12 +16,14 @@ int main(int argc, char* argv[])
     if (WSAStartup(0x101, &wsa_data))
     {
         printf("WSAStartup error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
     if (wsa_data.wVersion != 0x101)
     {
         printf("WSA version error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -30,6 +32,7 @@ int main(int argc, char* argv[])
     if (s == INVALID_SOCKET)
     {
         printf("socket error\n");
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -56,6 +59,8 @@ int main(int argc, char* argv[])
     if (!f)
     {
         printf("fopen error\n");
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -65,6 +70,9 @@ int main(int argc, char* argv[])
     if (recv(s, (char*)&file_size, sizeof(file_size), 0) != sizeof(file_size))
     {
         printf("recv error\n");
+        fclose(f);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -75,6 +83,9 @@ int main(int argc, char* argv[])
     if (recv(s, (char*)&now, time_point_size, 0) != time_point_size)
     {
         printf("send error\n");
+        fclose(f);
+        closesocket(s);
+        WSACleanup();
         system("pause");
         return -1;
     }
@@ -91,12 +102,18 @@ int main(int argc, char* argv[])
         if (!n)
         {
             printf("disconnected\n");
+            fclose(f);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
         if (n == SOCKET_ERROR)
         {
             printf("recv error\n");
+            fclose(f);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
@@ -104,12 +121,18 @@ int main(int argc, char* argv[])
         if (file_size < 0)
         {
             printf("file_size error\n");
+            fclose(f);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
         if (fwrite(buffer, 1, n, f) != n)
         {
             printf("fwrite error\n");
+            fclose(f);
+            closesocket(s);
+            WSACleanup();
             system("pause");
             return -1;
         }
